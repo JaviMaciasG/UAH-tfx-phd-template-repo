@@ -13,6 +13,7 @@ TAR_TOOL = tar
 GZIP_TOOL = gzip
 ZIP_TOOL = zip
 DIA_TOOL = dia
+GS_TOOL = gs
 INKSCAPE_TOOL = inkscape
 MAKEGLOSSARIES_TOOL = makeglossaries
 LATEXPAND_TOOL = latexpand
@@ -31,6 +32,7 @@ AUTHOR_NAME = $(shell grep -v "%" $(CONFIG_FILE) | grep "myAuthorName" | grep -v
 AUTHOR_SURNAME = $(shell grep -v "%" $(CONFIG_FILE) | grep "myAuthorSurname" | grep -v "myAuthorFullName" | cut -f 3 -d "{" | cut -f 1 -d "}" | tr -d " " | iconv -f utf8 -t ascii//TRANSLIT)
 BOOK_LANGUAGE = $(shell grep -v "%" $(CONFIG_FILE) | grep "myLanguage" | cut -f 3 -d "{" | cut -f 1 -d "}")
 BOOK_TYPE = $(shell grep -w $(DEGREE_NAME) $(WORKTYPES_FILE) | tr -s " " | cut -f 2 -d " " | tr -d " ")
+RELEASE = $(shell git describe --tags --abbrev=0)
 
 # Filenames
 ROOT_FILENAME = book
@@ -75,7 +77,17 @@ all: $(DUMMY_TARGETS)
 	$(MAKEGLOSSARIES_TOOL) $(ROOT_FILENAME)
 	$(PDF_TOOL) $(FLAGS_SYNCTEX_PDFLATEX) $(TEX_FILE)
 	$(PDF_TOOL) $(FLAGS_SYNCTEX_PDFLATEX) $(TEX_FILE)
+# Compress pdf file
+	$(GS_TOOL) -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen   -dNOPAUSE -dQUIET -dBATCH -sOutputFile=$(ROOT_FILENAME)-screen.pdf     $(ROOT_FILENAME).pdf
+	$(GS_TOOL) -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress -dNOPAUSE -dQUIET -dBATCH -sOutputFile=$(ROOT_FILENAME)-compressed.pdf $(ROOT_FILENAME).pdf
 	cp $(ROOT_FILENAME).pdf $(ROOT_FINAL_BOOK_FILENAME).pdf
+	cp $(ROOT_FILENAME)-compressed.pdf $(ROOT_FINAL_BOOK_FILENAME)-compressed.pdf
+	cp $(ROOT_FILENAME)-screen.pdf $(ROOT_FINAL_BOOK_FILENAME)-screen.pdf
+	@echo "Generating release number"
+	-rm ../RELEASE.txt
+	echo "$(RELEASE)" > ../RELEASE.txt
+	(git add ../RELEASE.txt >& /dev/null) || echo "Could not add ../RELEASE.txt to git index. This is fine if you are not using git."
+
 
 bare: backup-chapters bare-chapters clean-orig-figures clean-orig-diagrams
 
