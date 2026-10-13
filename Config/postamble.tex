@@ -1,32 +1,8 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Función: configuración dependiente del idioma y del documento.
 %
-% Generic template for TFC/TFM/TFG/Tesis
-% 
-% $Id: postamble.tex,v 1.21 2020/03/24 17:18:25 macias Exp $
-% 
-% By:
-% + Javier Macías-Guarasa. 
-%   Departamento de Electrónica
-%   Universidad de Alcalá
-% + Roberto Barra-Chicote. 
-%   Departamento de Ingeniería Electrónica
-%   Universidad Politécnica de Madrid
-% 
-% Based on original sources by Roberto Barra, Manuel Ocaña, Jesús Nuevo,
-% Pedro Revenga, Fernando Herránz and Noelia Hernández. Thanks a lot to
-% all of them, and to the many anonymous contributors found (thanks to
-% google) that provided help in setting all this up.
-% 
-% See also the additionalContributors.txt file to check the name of
-% additional contributors to this work.
-% 
-% If you think you can add pieces of relevant/useful examples,
-% improvements, please contact us at (macias@depeca.uah.es)
-% 
-% You can freely use this template and please contribute with
-% comments or suggestions!!!
-% 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% Uso: mantenimiento de la plantilla; normalmente no debes modificarlo.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 % 
@@ -37,17 +13,114 @@
 % that will be used by other modules. The decision is based on the
 % \myDegree variable set by the user.
 % 
-% In case the \myDegree variable is now known, the module will generate 
-% an error message in \myDegreefull and \myWorkTypeFull, but will 
-% generate a valid \myWorkType, to be able to generate front and
-% cover pages (TFG by default)
+% Unsupported degree identifiers produce an explicit registry error.
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
+% Validate the user-facing document structure and expose a simple conditional
+% for Book/book.tex.
+\newif\ifstandarddocument
+\ifthenelse{\equal{\myDocumentStructure}{standard}}
+{
+  \standarddocumenttrue
+}
+{
+  \ifthenelse{\equal{\myDocumentStructure}{compendium}}
+  {
+    \standarddocumentfalse
+  }
+  {
+    \PackageError{UAH-template}
+      {Unknown document structure '\myDocumentStructure'}
+      {Use 'standard' or 'compendium' in Config/myconfig.tex.}
+  }
+}
+
+% Fail early when a boolean user option contains an unsupported value.
+\newcommand{\ValidateBooleanOption}[2]{%
+  \ifthenelse{\equal{#1}{true}}%
+    {}%
+    {\ifthenelse{\equal{#1}{false}}%
+      {}%
+      {\PackageError{UAH-template}
+        {Invalid value '#1' for #2}
+        {Use exactly 'true' or 'false' in Config/myconfig.tex.}}}%
+}
+\ValidateBooleanOption{\myIncludeSampleLetter}{\string\myIncludeSampleLetter}
+\ValidateBooleanOption{\myIncludeDedication}{\string\myIncludeDedication}
+\ValidateBooleanOption{\myIncludeAcknowledgements}{\string\myIncludeAcknowledgements}
+\ValidateBooleanOption{\myIncludeListOfFigures}{\string\myIncludeListOfFigures}
+\ValidateBooleanOption{\myIncludeListOfTables}{\string\myIncludeListOfTables}
+\ValidateBooleanOption{\myIncludeListOfAcronyms}{\string\myIncludeListOfAcronyms}
+\ValidateBooleanOption{\myIncludeListOfSymbols}{\string\myIncludeListOfSymbols}
+\ValidateBooleanOption{\myIncludeListOfCode}{\string\myIncludeListOfCode}
+\ValidateBooleanOption{\myIncludeListOfAlgorithms}{\string\myIncludeListOfAlgorithms}
+\ValidateBooleanOption{\myIncludeListOfVideos}{\string\myIncludeListOfVideos}
+\ValidateBooleanOption{\myAcademicTutorIsPhD}{\string\myAcademicTutorIsPhD}
+\ValidateBooleanOption{\myCoTutorIsPhD}{\string\myCoTutorIsPhD}
+
+% Select the degree before defining text that depends on its institution.
+\providecommand{\myConfigDirectory}{../Config}
+\input{\myConfigDirectory/degree-registry.tex}
+\input{\myConfigDirectory/institutions.tex}
+\input{\myConfigDirectory/layout-profiles.tex}
+\input{\myConfigDirectory/degrees.tex}
+\DegreeRegistrySelect{\myDegree}
+
+% A thesis by compendium is only valid for a doctoral programme.
+\ifthenelse{\equal{\myDocumentStructure}{compendium}}
+{
+  \ifthenelse{\equal{\myWorkType}{PhD}}
+  {}
+  {
+    \PackageError{UAH-template}
+      {The compendium structure requires a PhD programme}
+      {Set \string\myDegree\space to a doctoral programme, or select the standard document structure.}
+  }
+}
+{}
+
+\InstitutionRegistryLoadStyle
+
+% Separate adviser departments from their institutions. Undefined optional
+% fields are empty; department-only fields never fall back to an institution.
+\providecommand{\myAcademicTutorDepartment}{}
+\providecommand{\myAcademicTutorDepartmentEnglish}{}
+\providecommand{\myAcademicTutorInstitution}{}
+\providecommand{\myAcademicTutorInstitutionEnglish}{}
+\providecommand{\myAcademicCotutorDepartment}{}
+\providecommand{\myAcademicCotutorDepartmentEnglish}{}
+\providecommand{\myAcademicCotutorInstitution}{}
+\providecommand{\myAcademicCotutorInstitutionEnglish}{}
+\newcommand{\DocumentDepartment}{%
+  \ifthenelse{\equal{\myAcademicTutorDepartment}{}}
+    {\myAcademicCotutorDepartment}{\myAcademicTutorDepartment}}
+\newcommand{\DocumentDepartmentEnglish}{%
+  \ifthenelse{\equal{\myAcademicTutorDepartmentEnglish}{}}
+    {\myAcademicCotutorDepartmentEnglish}{\myAcademicTutorDepartmentEnglish}}
+% Deprecated compatibility names: no longer editable fields in myconfig.tex.
+\providecommand{\myDepartment}{}
+\renewcommand{\myDepartment}{\DocumentDepartment}
+\providecommand{\myDepartmentEnglish}{}
+\renewcommand{\myDepartmentEnglish}{\DocumentDepartmentEnglish}
+
+% Affiliation fields display both values, without dangling commas when empty.
+\newcommand{\FormatAdviserAffiliation}[2]{%
+  \ifthenelse{\equal{#1}{}}{#2}{%
+    #1\ifthenelse{\equal{#2}{}}{}{, #2}}}
+\newcommand{\AcademicTutorAffiliation}{%
+  \FormatAdviserAffiliation{\myAcademicTutorDepartment}{\myAcademicTutorInstitution}}
+\newcommand{\AcademicTutorAffiliationEnglish}{%
+  \FormatAdviserAffiliation{\myAcademicTutorDepartmentEnglish}{\myAcademicTutorInstitutionEnglish}}
+\newcommand{\AcademicCotutorAffiliation}{%
+  \FormatAdviserAffiliation{\myAcademicCotutorDepartment}{\myAcademicCotutorInstitution}}
+\newcommand{\AcademicCotutorAffiliationEnglish}{%
+  \FormatAdviserAffiliation{\myAcademicCotutorDepartmentEnglish}{\myAcademicCotutorInstitutionEnglish}}
+
 \ifthenelse{\equal{\myLanguage}{spanish}}
 {
-  \usepackage[english, spanish]{babel}
-  \newcommand{\myFullAffiliation}{Grupo de investigación \myResearchGroup \\ \myDepartment \\ \myUniversity} 
+  \usepackage[english, spanish, es-lcroman]{babel}
+  \newcommand{\myFullAffiliation}{Grupo de investigación \myResearchGroup \\ \DocumentDepartment \\ \myUniversity}
   \newcommand{\myBookTitle}{\myBookTitleSpanish}
   \newcommand{\mypdflang}{es}
   \newcommand{\myPresentedBy}{Presentado por}
@@ -56,7 +129,7 @@
 } 
 {
   \usepackage[spanish, english]{babel}
-  \newcommand{\myFullAffiliation}{\myResearchGroup Research Group \\ \myDepartmentEnglish \\ \myUniversity} 
+  \newcommand{\myFullAffiliation}{\myResearchGroup Research Group \\ \DocumentDepartmentEnglish \\ \myUniversityEnglish}
   \newcommand{\myBookTitle}{\myBookTitleEnglish}
   \newcommand{\mypdflang}{en}
   \newcommand{\myPresentedBy}{Presented by}
@@ -81,21 +154,50 @@
 \ifthenelse{\equal{\myAcademicTutorGender}{male}}     
 {                                                       
   \newcommand{\wordDonOrDonaTutor}{D.}
+
+  \ifthenelse{\equal{\myAcademicTutorIsPhD}{true}}
+  {
   \newcommand{\wordDrOrDraTutor}{Dr.}
+  }
+  {
+  \newcommand{\wordDrOrDraTutor}{}
+  }
 }
 {
   \newcommand{\wordDonOrDonaTutor}{Dª.}
+
+  \ifthenelse{\equal{\myAcademicTutorIsPhD}{true}}
+  {
   \newcommand{\wordDrOrDraTutor}{Dra.}
+  }
+  {
+  \newcommand{\wordDrOrDraTutor}{}
+  }
 }
 
 \ifthenelse{\equal{\myCoTutorGender}{male}}     
 {                                                       
   \newcommand{\wordDonOrDonaCoTutor}{D.}
+
+  \ifthenelse{\equal{\myCoTutorIsPhD}{true}}
+  {
   \newcommand{\wordDrOrDraCoTutor}{Dr.}
+  }
+  {
+  \newcommand{\wordDrOrDraCoTutor}{}
+  }
+
 }
 {
   \newcommand{\wordDonOrDonaCoTutor}{Dª.}
+
+  \ifthenelse{\equal{\myCoTutorIsPhD}{true}}
+  {
   \newcommand{\wordDrOrDraCoTutor}{Dra.}
+  }
+  {
+  \newcommand{\wordDrOrDraCoTutor}{}
+  }
 }
 
 \ifthenelse{\equal{\myAuthorGender}{male}}     
@@ -104,6 +206,16 @@
 }
 {
   \newcommand{\wordDonOrDonaAutor}{Dª.}
+}
+
+% Independent of department secretary; older configurations omit this field.
+\providecommand{\myTribunalSecretaryGender}{female}
+\ifthenelse{\equal{\myTribunalSecretaryGender}{male}}
+{
+  \newcommand{\wordTribunalSecretarioOrSecretaria}{Secretario}
+}
+{
+  \newcommand{\wordTribunalSecretarioOrSecretaria}{Secretaria}
 }
 
 \ifthenelse{\equal{\myTribunalPresidentGender}{male}}
@@ -149,17 +261,37 @@
   \newcommand{\wordAcademicoOrAcademica}{académica}
   \newcommand{\wordTutorDelOrDeLa}{de la}
 }
+\ifthenelse{\equal{\myLanguage}{spanish}}
+{
+\newcommand{\wordDirectorOrDirectoraTitle}{\expandafter\makefirstuc\expandafter{\wordDirectorOrdirectora}}
+\newcommand{\wordTutorOrTutoraTitle}{\expandafter\makefirstuc\expandafter{\wordTutorOrTutora}}
+}
+{
+\newcommand{\wordDirectorOrDirectoraTitle}{Advisor}
+\newcommand{\wordTutorOrTutoraTitle}{Advisor}
+}
 
 \ifthenelse{\equal{\myCoTutorGender}{male}}
 {                                                       
   \newcommand{\wordCoDirectorOrCoDirectora}{codirector}
-  \newcommand{\wordCoDirectorElOrLa}{el}  \newcommand{\wordCoTutorOrCoTutora}{cotutor}
+  \newcommand{\wordCoDirectorElOrLa}{el}
+  \newcommand{\wordCoTutorOrCoTutora}{cotutor}
   \newcommand{\wordCoTutorDelOrDeLa}{del}
 }
 {
   \newcommand{\wordCoDirectorOrCoDirectora}{codirectora}
-  \newcommand{\wordCoDirectorElOrLa}{la}  \newcommand{\wordCoTutorOrCoTutora}{cotutora}
+  \newcommand{\wordCoDirectorElOrLa}{la}
+  \newcommand{\wordCoTutorOrCoTutora}{cotutora}
   \newcommand{\wordCoTutorDelOrDeLa}{de la}
+}
+\ifthenelse{\equal{\myLanguage}{spanish}}
+{
+\newcommand{\wordCoDirectorOrCoDirectoraTitle}{\expandafter\makefirstuc\expandafter{\wordCoDirectorOrCoDirectora}}
+\newcommand{\wordCoTutorOrCoTutoraTitle}{\expandafter\makefirstuc\expandafter{\wordCoTutorOrCoTutora}}
+}
+{
+\newcommand{\wordCoDirectorOrCoDirectoraTitle}{Coadvisor}
+\newcommand{\wordCoTutorOrCoTutoraTitle}{Coadvisor}
 }
 
 \ifthenelse{\equal{\myDepartmentSecretaryGender}{male}}     
@@ -221,9 +353,9 @@
 
 % Set Autor/Autora field
 \ifthenelse{\equal{\myAuthorGender}{male}}     
-{                                                       
-  \newcommand{\wordAutorOrAutora}{autor}                
-  \newcommand{\wordAutorElOrLa}{el}                
+{
+  \newcommand{\wordAutorOrAutora}{autor}
+  \newcommand{\wordAutorElOrLa}{el}
   \newcommand{\wordAutorAlOrALa}{al}                
   \newcommand{\wordAutorDelOrDeLa}{del}                
   \newcommand{\wordAutorDonOrDona}{D}                
@@ -234,7 +366,7 @@
   \newcommand{\wordAlumnoOrAlumnaUpcaseFirt}{Alumno}  
 }                                               
 {
-  \newcommand{\wordAutorOrAutora}{autora}                
+  \newcommand{\wordAutorOrAutora}{autora}
   \newcommand{\wordAutorElOrLa}{la}                
   \newcommand{\wordAutorAlOrALa}{a la}                
   \newcommand{\wordAutorDelOrDeLa}{de la}                
@@ -244,6 +376,13 @@
   \newcommand{\wordAlumnoOrAlumna}{alumna}
   % This is silly, but makefirstuc does not work properly...
   \newcommand{\wordAlumnoOrAlumnaUpcaseFirt}{Alumna}
+}
+\ifthenelse{\equal{\myLanguage}{spanish}}
+{
+\newcommand{\wordAutorOrAutoraTitle}{\expandafter\makefirstuc\expandafter{\wordAutorOrAutora}}
+}
+{
+\newcommand{\wordAutorOrAutoraTitle}{Author}
 }
 
 \ifthenelse{\equal{\myResearchVicerrectorGender}{male}}     
@@ -263,435 +402,6 @@
 {
   \newcommand{\okCoTutorOrCotutora}{y \wordCoTutorDelOrDeLa{} \wordCoTutorOrCoTutora{}}
   \newcommand{\signedByCoTutorOrCoTutora}{\MakeUppercase{\wordCoTutorOrCoTutora} (si procede): \mySecondAdvisorFullName}
-}
-
-% Set degree name and type of document, depending on the user defined degree
-\ifthenelse{\equal{\myDegree}{IT}}
-{
-  \newcommand{\myDegreefull}{Ingeniería de Telecomunicación}
-  \newcommand{\myWorkType}{TFC}
-  \ifthenelse{\equal{\myLanguage}{spanish}}
-  {
-    \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-  }
-  {
-    % This could be translated. I'm leaving this in Spanish...
-    % \newcommand{\myWorkTypeFull}{Master's Thesis}
-    \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-  }
-}
-{
-  \ifthenelse{\equal{\myDegree}{IE}}
-  {
-    \newcommand{\myDegreefull}{Ingeniería Electrónica}
-    \newcommand{\myWorkType}{TFC}
-    \ifthenelse{\equal{\myLanguage}{spanish}}
-    {
-      \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-    }
-    {
-      % This could be translated. I'm leaving this in Spanish...
-      % \newcommand{\myWorkTypeFull}{Master's Thesis}
-      \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-    }
-  }
-  {
-    \ifthenelse{\equal{\myDegree}{ITTSE}}
-    {
-      \newcommand{\myDegreefull}{Ingeniería Técnica de Telecomunicación, especialidad en Sistemas Electrónicos}
-      \newcommand{\myWorkType}{TFC}
-      \ifthenelse{\equal{\myLanguage}{spanish}}
-      {
-        \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-      }
-      {
-        % This could be translated. I'm leaving this in Spanish...
-        % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-        \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-      }
-    }
-    {
-      \ifthenelse{\equal{\myDegree}{ITTST}}
-      {
-        \newcommand{\myDegreefull}{Ingeniería Técnica de Telecomunicación, especialidad en Sistemas de Telecomunicación}
-        \newcommand{\myWorkType}{TFC}
-        \ifthenelse{\equal{\myLanguage}{spanish}}
-        {
-          \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-        }
-        {
-          % This could be translated. I'm leaving this in Spanish...
-          % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-          \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-        }
-      }
-      {
-        \ifthenelse{\equal{\myDegree}{ITI}}
-        {
-          \newcommand{\myDegreefull}{Ingeniería Técnica Industrial, especialidad en Electrónica Industrial}
-          \newcommand{\myWorkType}{TFC}
-          \ifthenelse{\equal{\myLanguage}{spanish}}
-          {
-            \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-          }
-          {
-            % This could be translated. I'm leaving this in Spanish...
-            % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-            \newcommand{\myWorkTypeFull}{Trabajo Fin de Carrera}
-          }
-        }
-        {
-          \ifthenelse{\equal{\myDegree}{GIEC}}
-          {
-            \newcommand{\myDegreefull}{Grado en Ingeniería Electrónica de Comunicaciones}
-            \newcommand{\myWorkType}{TFG}
-            \ifthenelse{\equal{\myLanguage}{spanish}}
-            {
-              \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-            }
-            {
-              % This could be translated. I'm leaving this in Spanish...
-              % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-              \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-            }
-          }
-          {
-            \ifthenelse{\equal{\myDegree}{GIEAI}}
-            {
-              \newcommand{\myDegreefull}{Grado en Ingeniería en Electrónica y Automática Industrial}
-              \newcommand{\myWorkType}{TFG}
-              \ifthenelse{\equal{\myLanguage}{spanish}}
-              {
-                \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-              }
-              {
-                % This could be translated. I'm leaving this in Spanish...
-                % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-              }
-            }
-            {
-              \ifthenelse{\equal{\myDegree}{GIST}}
-              {
-                \newcommand{\myDegreefull}{Grado en Ingeniería en Sistemas de Telecomunicación}
-                \newcommand{\myWorkType}{TFG}
-                \ifthenelse{\equal{\myLanguage}{spanish}}
-                {
-                  \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                }
-                {
-                  % This could be translated. I'm leaving this in Spanish...
-                  % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                  \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                }
-              }
-              {
-                \ifthenelse{\equal{\myDegree}{GITT}}
-                {
-                  \newcommand{\myDegreefull}{Grado en Ingeniería en Tecnologías de Telecomunicación}
-                  \newcommand{\myWorkType}{TFG}
-                  \ifthenelse{\equal{\myLanguage}{spanish}}
-                  {
-                    \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                  }
-                  {
-                    % This could be translated. I'm leaving this in Spanish...
-                    % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                    \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                  }
-                }
-                {
-                  \ifthenelse{\equal{\myDegree}{GIT}}
-                  {
-                    \newcommand{\myDegreefull}{Grado en Ingeniería Telemática}
-                    \newcommand{\myWorkType}{TFG}
-                    \ifthenelse{\equal{\myLanguage}{spanish}}
-                    {
-                      \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                    }
-                    {
-                      % This could be translated. I'm leaving this in Spanish...
-                      % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                      \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                    }
-                  }
-                  {
-                    \ifthenelse{\equal{\myDegree}{GIC}}
-                    {
-                      \newcommand{\myDegreefull}{Grado en Ingeniería de Computadores}
-                      \newcommand{\myWorkType}{TFG}
-                      \ifthenelse{\equal{\myLanguage}{spanish}}
-                      {
-                        \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                      }
-                      {
-                        % This could be translated. I'm leaving this in Spanish...
-                        % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                        \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                      }
-                    }
-                    {
-                      \ifthenelse{\equal{\myDegree}{GII}}
-                      {
-                        \newcommand{\myDegreefull}{Grado en Ingeniería Informática}
-                        \newcommand{\myWorkType}{TFG}
-                        \ifthenelse{\equal{\myLanguage}{spanish}}
-                        {
-                          \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                        }
-                        {
-                          % This could be translated. I'm leaving this in Spanish...
-                          % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                          \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                        }
-                      }
-                      {
-                        \ifthenelse{\equal{\myDegree}{GIS}}
-                        {
-                          \newcommand{\myDegreefull}{Grado en Sistemas de Información}
-                          \newcommand{\myWorkType}{TFG}
-                          \ifthenelse{\equal{\myLanguage}{spanish}}
-                          {
-                            \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                          }
-                          {
-                            % This could be translated. I'm leaving this in Spanish...
-                            % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                            \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                          }
-                        }
-                        {
-                          \ifthenelse{\equal{\myDegree}{MUSEA}}
-                          {
-                            \newcommand{\myDegreefull}{Máster Universitario en Sistemas Electrónicos Avanzados. Sistemas Inteligentes}
-                            \newcommand{\myDegreefullwrapped}{Máster Universitario en Sistemas Electrónicos Avanzados\\Sistemas Inteligentes}
-                            \newcommand{\myDegreefullwrappedUpcase}{\MakeUppercase{Máster Universitario en Sistemas Electrónicos Avanzados}\\\MakeUppercase{Sistemas Inteligentes}}
-                            \newcommand{\myWorkType}{TFM}
-                            \ifthenelse{\equal{\myLanguage}{spanish}}
-                            {
-                              \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                            }
-                            {
-                              % This could be translated. I'm leaving this in Spanish...
-                              % \newcommand{\myWorkTypeFull}{Master's Thesis}
-                              \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                            }
-                          }
-                          {
-                            \ifthenelse{\equal{\myDegree}{PHDUAH}}
-                            {
-                              \newcommand{\myDegreefull}{Estudios de Doctorado}
-                              \newcommand{\myWorkType}{PHDUAH}
-                              \ifthenelse{\equal{\myLanguage}{spanish}}
-                              {
-                                \newcommand{\myWorkTypeFull}{Tesis Doctoral}
-                              }
-                              {
-                                \newcommand{\myWorkTypeFull}{Doctoral Thesis}
-                              }
-                            }
-                            {
-                              \ifthenelse{\equal{\myDegree}{PHDUPM}}
-                              {
-                                \newcommand{\myDegreefull}{Doctor Ingeniero de Telecomunicación}
-                                \newcommand{\myWorkType}{PHDUPM}
-                                \ifthenelse{\equal{\myLanguage}{spanish}}
-                                {
-                                  \newcommand{\myWorkTypeFull}{Tesis Doctoral}
-                                }
-                                {
-                                  \newcommand{\myWorkTypeFull}{Doctoral Thesis}
-                                }
-                              }
-                              {
-                                \ifthenelse{\equal{\myDegree}{GEINTRARR}}
-                                {
-                                  \newcommand{\myDegreefull}{GEINTRA Research Report}
-                                  \newcommand{\myWorkType}{GEINTRARR}
-                                  \ifthenelse{\equal{\myLanguage}{spanish}}
-                                  {
-                                    \newcommand{\myWorkTypeFull}{Informe técnico del Grupo de investigación \myResearchGroup{}}
-                                  }
-                                  {
-                                    \newcommand{\myWorkTypeFull}{\myResearchGroup{} Research Report}
-                                  }
-                                }
-                                {
-                                  \ifthenelse{\equal{\myDegree}{MUIT}}
-                                  {
-                                    \newcommand{\myDegreefull}{Máster Universitario en Ingeniería de Telecomunicación}
-                                    \newcommand{\myDegreefullwrapped}{Máster Universitario en Ingeniería de Telecomunicación}
-                                    \newcommand{\myDegreefullwrappedUpcase}{\MakeUppercase{Máster Universitario en}\\\MakeUppercase{Ingeniería de Telecomunicación}}
-                                    \newcommand{\myWorkType}{TFM}
-                                    \ifthenelse{\equal{\myLanguage}{spanish}}
-                                    {
-                                      \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                    }
-                                    {
-                                      % This could be translated. I'm leaving this in Spanish...
-                                      % \newcommand{\myWorkTypeFull}{Master's Thesis}
-                                      \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                    }
-                                  }
-                                  {
-                                    \ifthenelse{\equal{\myDegree}{MUII}}
-                                    {
-                                      \newcommand{\myDegreefull}{Máster Universitario en Ingeniería Industrial}
-                                      \newcommand{\myDegreefullwrapped}{Máster Universitario en Ingeniería Industrial}
-                                      \newcommand{\myDegreefullwrappedUpcase}{\MakeUppercase{Máster Universitario en}\\\MakeUppercase{Ingeniería Industrial}}
-                                      \newcommand{\myWorkType}{TFM}
-                                      \ifthenelse{\equal{\myLanguage}{spanish}}
-                                      {
-                                        \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                      }
-                                      {        
-                                        % This could be translated. I'm leaving this in Spanish...
-                                        % \newcommand{\myWorkTypeFull}{Master's Thesis}
-                                        \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                      }
-                                    }
-                                    {
-                                      \ifthenelse{\equal{\myDegree}{GITI}}
-                                      {
-                                        \newcommand{\myDegreefull}{Grado en Ingeniería en Tecnologías Industriales}
-                                        \newcommand{\myWorkType}{TFG}
-                                        \ifthenelse{\equal{\myLanguage}{spanish}}
-                                        {
-                                          \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                                        }
-                                        {
-                                          % This could be translated. I'm leaving this in Spanish...
-                                          % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                                          \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                                        }
-                                      }
-                                      {
-                                        \ifthenelse{\equal{\myDegree}{GISI}}
-                                        {
-                                          \newcommand{\myDegreefull}{Grado en Ingeniería en Sistemas de Información}
-                                          \newcommand{\myWorkType}{TFG}
-                                          \ifthenelse{\equal{\myLanguage}{spanish}}
-                                          {
-                                            \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                                          }
-                                          {
-                                            % This could be translated. I'm leaving this in Spanish...
-                                            % \newcommand{\myWorkTypeFull}{Bachelor's Thesis}
-                                            \newcommand{\myWorkTypeFull}{Trabajo de Fin de Grado}
-                                          }
-                                        }
-                                        {
-                                          \ifthenelse{\equal{\myDegree}{MUIE}}
-                                          {
-                                            \newcommand{\myDegreefull}{Máster Universitario en Ingeniería Electrónica}
-                                            \newcommand{\myDegreefullwrapped}{Máster Universitario en Ingeniería Electrónica}
-                                            \newcommand{\myDegreefullwrappedUpcase}{\MakeUppercase{Máster Universitario en}\\\MakeUppercase{Ingeniería Electrónica}}
-                                            \newcommand{\myWorkType}{TFM}
-                                            \ifthenelse{\equal{\myLanguage}{spanish}}
-                                            {
-                                              \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                            }
-                                            {        
-                                              % This could be translated. I'm leaving this in Spanish...
-                                              % \newcommand{\myWorkTypeFull}{Master's Thesis}
-                                              \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                            }
-                                          }
-                                          {
-                                            \ifthenelse{\equal{\myDegree}{MUCTE}}
-                                            {
-                                              \newcommand{\myDegreefull}{Máster Universitario en Ciencia y Tecnología desde el Espacio}
-                                              \newcommand{\myDegreefullwrapped}{Máster Universitario en\\Ciencia y Tecnología desde el Espacio}
-                                              \newcommand{\myDegreefullwrappedUpcase}{\MakeUppercase{Máster Universitario en}\\\MakeUppercase{Ciencia y Tecnología desde el Espacio}}
-                                              \newcommand{\myWorkType}{TFM}
-                                              \ifthenelse{\equal{\myLanguage}{spanish}}
-                                              {
-                                                \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                              }
-                                              {        
-                                                % This could be translated. I'm leaving this in Spanish...
-                                                % \newcommand{\myWorkTypeFull}{Master's Thesis}
-                                                \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                              }
-                                            }
-                                            {
-                                              \ifthenelse{\equal{\myDegree}{GMC}}
-                                              {
-                                                \newcommand{\myDegreefull}{Grado en Matemáticas y Computación}
-                                                \newcommand{\myDegreefullwrapped}{Grado en Matemáticas y Computación}
-                                                \newcommand{\myDegreefullwrappedUpcase}{\MakeUppercase{Grado en Matemáticas y Computación}}
-                                                \newcommand{\myWorkType}{TFG}
-                                                \ifthenelse{\equal{\myLanguage}{spanish}}
-                                                {
-                                                  \newcommand{\myWorkTypeFull}{Trabajo de Fin de Carrera}
-                                                }
-                                                {
-                                                  % This could be translated. I'm leaving this in Spanish...
-                                                  % \newcommand{\myWorkTypeFull}{Master's Thesis}
-                                                  \newcommand{\myWorkTypeFull}{Trabajo de Fin de Carrera}
-                                                }
-                                              }
-                                              {
-                                                \ifthenelse{\equal{\myDegree}{MUC}}
-                                                {
-                                                \newcommand{\myDegreefull}{Máster Universitario en Ciberseguridad}
-                                                \newcommand{\myDegreefullwrapped}{Máster Universitario en Ciberseguridad}
-                                                \newcommand{\myDegreefullwrappedUpcase}{\MakeUppercase{Máster Universitario en Ciberseguridad}}
-                                                \newcommand{\myWorkType}{TFM}
-                                                \ifthenelse{\equal{\myLanguage}{spanish}}
-                                                {
-                                                \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                                }
-                                                {
-                                                % This could be translated. I'm leaving this in Spanish...
-                                                % \newcommand{\myWorkTypeFull}{Master's Thesis}
-                                                \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                                }
-                                                }
-                                                {
-                                                  \ifthenelse{\equal{\myDegree}{MUANBD}}
-                                                  {
-                                                    \newcommand{\myDegreefull}{Máster Universitario en Analítica de Negocio y Big Data}
-                                                    \newcommand{\myDegreefullwrapped}{Máster Universitario en Analítica de Negocio y Big Data}
-                                                    \newcommand{\myDegreefullwrappedUpcase}{\MakeUppercase{Máster Universitario en Analítica de Negocio y Big Data}}
-                                                    \newcommand{\myWorkType}{TFM}
-                                                    \ifthenelse{\equal{\myLanguage}{spanish}}
-                                                    {
-                                                      \newcommand{\myWorkTypeFull}{Trabajo Fin de Máster}
-                                                    }
-                                                    {
-                                                      \newcommand{\myWorkTypeFull}{Master's Thesis}
-                                                    }
-                                                  }
-                                                  {
-                                                    \newcommand{\myWorkType}{TFG}
-                                                    \newcommand{\myDegreefull}{ERROR: Defined degree (\myDegree) unknown, check \texttt{config/myconfig.tex}}
-                                                    \newcommand{\myWorkTypeFull}{ERROR: Defined degree (\myDegree) unknown, check \texttt{config/myconfig.tex}}
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }                               
-                              }                          
-                            }                          
-                          }                          
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -811,6 +521,10 @@
 %\usepackage[subfigure]{tocloft}
 
 \usepackage{tocloft}
+\renewcommand{\cftpartfont}{\large\bfseries\scshape}
+\renewcommand{\cftpartpresnum}{\partname\space}
+\renewcommand{\cftpartaftersnum}{\quad}
+\setlength{\cftpartnumwidth}{7em}
 \setlength{\cftbeforefigskip}{6pt} % Default is around 4pt
 
 
@@ -820,14 +534,14 @@
 \newcommand{\videoLink}[2]{%
   \refstepcounter{videos}%
   \phantomsection%
-  \addcontentsline{vdo}{videos}{\protect\numberline{\thechapter.\thevideos\hspace{4em}}\hspace{4em}#1 (\href{#2}{link to video})}\href{#2}{#1}}
+  \addcontentsline{vdo}{videos}{\protect\numberline{\thechapter.\thevideos}#1 (\href{#2}{link to video})}\href{#2}{#1}}
 }
 {
   \newlistof{videos}{vdo}{Índice de vídeos}
 \newcommand{\videoLink}[2]{%
   \refstepcounter{videos}%
   \phantomsection%
-  \addcontentsline{vdo}{videos}{\protect\numberline{\thechapter.\thevideos\hspace{4em}}\hspace{4em}#1 (\href{#2}{enlace al vídeo})}\href{#2}{#1}}
+  \addcontentsline{vdo}{videos}{\protect\numberline{\thechapter.\thevideos}#1 (\href{#2}{enlace al vídeo})}\href{#2}{#1}}
 }
 
 
@@ -843,4 +557,3 @@
 %%% Local Variables:
 %%% TeX-master: "../book"
 %%% End:
-

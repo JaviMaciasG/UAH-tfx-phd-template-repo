@@ -1,18 +1,70 @@
-TEXFILES := $(wildcard *.tex)
-PDFFILES := $(TEXFILES:.tex=.pdf)
+PDFLATEX ?= pdflatex
+LATEXFLAGS ?= -interaction=nonstopmode -halt-on-error -file-line-error
+LATEX_ENGINE ?= $(PDFLATEX)
+LATEX_CONFIG_DIR := ../Config
+include $(LATEX_CONFIG_DIR)/latex-common.mk
 
-# Default target: generate all PDFs
+AUTHORIZATION_DOCUMENTS := \
+	TFG-AutorizacionAutorPubAbierto-EPS-UAH \
+	TFG-AutorizacionTutorExtranjeroPubAbierto-EPS-UAH \
+	TFG-CompromisoConfidencialidad-EPS-UAH \
+	TFG-AutorizacionALLPubAbierto-EPS-UAH
+
+AGREEMENT_DOCUMENTS := \
+	TFG-ConvenioCooperacion-EPS-UAH
+
+EVALUATION_DOCUMENTS := \
+	TFG-InformeTutorYRubrica-EPS-UAH \
+	TFG-ActaYRubricaDefensa-EPS-UAH \
+	TFG-InformeTutorPlagio-UAH
+
+DOCUMENTS := \
+	$(AUTHORIZATION_DOCUMENTS) \
+	$(AGREEMENT_DOCUMENTS) \
+	$(EVALUATION_DOCUMENTS)
+PDFFILES := $(addsuffix .pdf,$(DOCUMENTS))
+TEXFILES := $(addsuffix .tex,$(DOCUMENTS))
+GUIDE_DOCUMENT := guia-papeleo-tfg-eps-uah
+GUIDE_TEX := $(GUIDE_DOCUMENT).tex
+GUIDE_PDF := $(GUIDE_DOCUMENT).pdf
+GUIDE_BUILD_TEX := $(wildcard $(GUIDE_TEX))
+
+.DEFAULT_GOAL := all
+
+.PHONY: all autorizaciones convenios evaluacion guia FORCE clean cleanall help
+
 all: $(PDFFILES)
 
-# Implicit rule to convert .tex to .pdf
-%.pdf: %.tex
-	pdflatex -interaction=nonstopmode -halt-on-error $<
-	pdflatex -interaction=nonstopmode -halt-on-error $<
+autorizaciones: $(addsuffix .pdf,$(AUTHORIZATION_DOCUMENTS))
 
-# Clean auxiliary files
+convenios: $(addsuffix .pdf,$(AGREEMENT_DOCUMENTS))
+
+evaluacion: $(addsuffix .pdf,$(EVALUATION_DOCUMENTS))
+
+guia: $(GUIDE_PDF)
+
+FORCE:
+
+$(PDFFILES): %.pdf: %.tex FORCE
+	$(call latexmk_build,$<)
+
+ifneq ($(GUIDE_BUILD_TEX),)
+$(GUIDE_PDF): $(GUIDE_BUILD_TEX) FORCE
+	$(call latexmk_build,$<)
+endif
+
 clean:
-	rm -f $(PDFFILES) *.aux *.log *.out *.toc *.lof *.lot *.bbl *.blg *.synctex.gz *.fls *.fdb_latexmk *.bcf *.run.xml
+	$(call latexmk_clean,$(TEXFILES) $(GUIDE_BUILD_TEX))
 
-# Remove PDFs as well
-cleanall: clean
-	rm -f $(PDFFILES)
+cleanall:
+	$(call latexmk_cleanall,$(TEXFILES) $(GUIDE_BUILD_TEX))
+
+help:
+	@printf '%s\n' \
+		'make                 Generate all TFG paperwork incrementally' \
+		'make autorizaciones  Generate publication and confidentiality forms' \
+		'make convenios       Generate the cooperation-agreement form' \
+		'make evaluacion      Generate advisor reports and defense records' \
+		'make FILE.pdf        Generate one specific form' \
+		'make clean           Remove auxiliary files' \
+		'make cleanall        Remove auxiliary files and generated PDFs'
